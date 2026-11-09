@@ -1,0 +1,56 @@
+name: article-collector
+
+on:
+  schedule:
+    # GitHub 用 UTC 時間：04:00 UTC = 台灣 12:00，16:00 UTC = 台灣 00:00
+    # 整點常會延遲幾分鐘到半小時，屬於正常現象
+    - cron: "15 5,17 * * *"
+  workflow_dispatch: # 可以在 Actions 頁面手動按「Run workflow」立即整理
+    inputs:
+      diagnose:
+        description: "診斷 Gemini（只測試金鑰與模型，不整理收藏）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # 用來更新 state/processed.json（處理紀錄）
+
+concurrency:
+  group: threads-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # 長文翻譯比較花時間
+    # Playwright 官方映像檔：已預裝 Chromium 與系統套件，不用每次重裝
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 安裝套件
+        # 依照 package-lock.json 安裝鎖定的版本，不會自動升級
+        run: npm ci --no-audit --no-fund
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: 整理收藏
+        run: node src/main.js ${{ inputs.diagnose && '--diagnose' || '' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GEMINI_FALLBACK_MODELS: ${{ vars.GEMINI_FALLBACK_MODELS }}
+          GEMINI_THINKING: ${{ vars.GEMINI_THINKING }}
+          DRIVE_FOLDER_NAME: ${{ vars.DRIVE_FOLDER_NAME }}
+          DRIVE_ARTICLES_FOLDER: ${{ vars.DRIVE_ARTICLES_FOLDER }}
+          DRIVE_WEB_FOLDER: ${{ vars.DRIVE_WEB_FOLDER }}
+          DRIVE_TEXT_FOLDER: ${{ vars.DRIVE_TEXT_FOLDER }}
+          DRIVE_XHS_FOLDER: ${{ vars.DRIVE_XHS_FOLDER }}
+          SAVE_IMAGES: ${{ vars.SAVE_IMAGES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

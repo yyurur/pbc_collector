@@ -1,0 +1,15 @@
+{
+  "name": "threads-collector",
+  "private": true,
+  "description": "把分享到 Telegram bot 的 Threads 貼文整理進 Google Drive 的 Obsidian vault",
+  "scripts": {
+    "start": "node src/main.js",
+    "test-post": "node src/main.js --test"
+  },
+  "dependencies": {
+    "@mozilla/readability": "0.6.0",
+    "opencc-js": "1.4.2",
+    "playwright": "1.63.0",
+    "turndown": "7.2.4"
+  }
+}
